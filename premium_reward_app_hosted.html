@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Reward Zone</title>
+
+  <!-- Monetag SDK: use on a live HTTPS website, not by opening this file locally -->
+  <script
+    src="https://libtl.com/sdk.js"
+    data-zone="12188834"
+    data-sdk="show_12188834"
+    onerror="window.monetagSdkLoadError = true;">
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 28px 18px;
+      background: linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+      color: #fff; font-family: Arial,sans-serif; text-align: center;
+    }
+    h2 { color: #ffd84d; margin: 18px 0 24px; }
+    .card {
+      width: 100%; max-width: 420px; margin: 0 auto; padding: 26px 22px;
+      border: 1px solid rgba(255,255,255,.14); border-radius: 18px;
+      background: rgba(255,255,255,.08); box-shadow: 0 12px 35px rgba(0,0,0,.25);
+    }
+    .stat { margin: 16px 0; font-size: 20px; }
+    button {
+      width: 100%; margin-top: 14px; padding: 15px; border: 0;
+      border-radius: 11px; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .reward { background: #ffd84d; color: #171717; }
+    .auto { background: #168a45; color: white; }
+    .auto.off { background: #c83232; }
+    #status { min-height: 24px; margin: 18px 0 0; color: #eee; line-height: 1.5; }
+    .note { max-width: 420px; margin: 18px auto; color: #ddd; font-size: 13px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h2>💎 Premium Reward Zone</h2>
+
+  <main class="card">
+    <div class="stat">Points: <b id="points">0</b></div>
+    <div class="stat">Balance: $<b id="balance">0.00</b></div>
+
+    <button class="reward" id="rewardBtn" type="button">🎁 Watch &amp; Earn</button>
+    <button class="auto off" id="autoBtn" type="button" aria-pressed="false">
+      ⏳ Auto Ads: OFF
+    </button>
+    <p id="status" role="status">Checking Monetag SDK…</p>
+  </main>
+
+  <p class="note">
+    Zone ID: 12188834<br>
+    Auto Ads ON/OFF is a preference switch; it does not automatically force ads.
+    Demo points and balance are stored only in this browser and are not real cash.
+  </p>
+
+  <script>
+    "use strict";
+
+    const ZONE_ID = 12188834;
+    const REWARD_POINTS = 10;
+    const REWARD_BALANCE = 0.01;
+
+    let points = Number(localStorage.getItem("points") || 0);
+    let balance = Number(localStorage.getItem("balance") || 0);
+    let adRunning = false;
+    let autoMode = false;
+
+    const pointsEl = document.getElementById("points");
+    const balanceEl = document.getElementById("balance");
+    const statusEl = document.getElementById("status");
+    const rewardBtn = document.getElementById("rewardBtn");
+    const autoBtn = document.getElementById("autoBtn");
+
+    function updateUI() {
+      pointsEl.textContent = String(points);
+      balanceEl.textContent = balance.toFixed(2);
+    }
+
+    function rewardUser() {
+      points += REWARD_POINTS;
+      balance = Math.round((balance + REWARD_BALANCE) * 100) / 100;
+      localStorage.setItem("points", String(points));
+      localStorage.setItem("balance", String(balance));
+      updateUI();
+    }
+
+    function checkSdk() {
+      if (location.protocol === "file:" || location.protocol === "content:") {
+        statusEl.textContent = "এই ফাইলটি লোকালি খোলা হয়েছে। আগে HTTPS hosting-এ upload করুন, তারপর ওয়েবসাইটের link খুলুন।";
+        return;
+      }
+      if (window.monetagSdkLoadError) {
+        statusEl.textContent = "Monetag SDK script load হয়নি। Internet, ad blocker এবং hosting domain পরীক্ষা করুন।";
+        return;
+      }
+      if (typeof window["show_" + ZONE_ID] === "function") {
+        statusEl.textContent = "Monetag SDK loaded. Watch & Earn চাপুন।";
+      } else {
+        statusEl.textContent = "SDK এখনো ready নয়। কিছুক্ষণ পর আবার চেষ্টা করুন; না হলে hosting/domain বা Monetag dashboard-এর SDK tag পরীক্ষা করুন।";
+      }
+    }
+
+    async function showRewardedAd() {
+      if (adRunning) return;
+
+      const adFunction = window["show_" + ZONE_ID];
+      if (typeof adFunction !== "function") {
+        checkSdk();
+        return;
+      }
+
+      adRunning = true;
+      rewardBtn.disabled = true;
+      statusEl.textContent = "বিজ্ঞাপন খোলার চেষ্টা হচ্ছে…";
+
+      try {
+        await adFunction();
+        rewardUser();
+        statusEl.textContent = "Monetag ad function সফলভাবে resolve করেছে। Demo reward যোগ হয়েছে।";
+      } catch (error) {
+        statusEl.textContent = "বিজ্ঞাপন সম্পন্ন হয়নি বা পাওয়া যায়নি। কোনো reward যোগ হয়নি।";
+      } finally {
+        adRunning = false;
+        rewardBtn.disabled = false;
+      }
+    }
+
+    function toggleAuto() {
+      autoMode = !autoMode;
+      autoBtn.classList.toggle("off", !autoMode);
+      autoBtn.textContent = autoMode ? "⏳ Auto Ads: ON" : "⏳ Auto Ads: OFF";
+      autoBtn.setAttribute("aria-pressed", String(autoMode));
+      statusEl.textContent = autoMode
+        ? "Auto preference ON. বিজ্ঞাপন চালাতে Watch & Earn চাপুন।"
+        : "Auto preference OFF.";
+    }
+
+    rewardBtn.addEventListener("click", showRewardedAd);
+    autoBtn.addEventListener("click", toggleAuto);
+
+    updateUI();
+    window.addEventListener("load", checkSdk);
+    setTimeout(checkSdk, 2500);
+  </script>
+</body>
+</html>
